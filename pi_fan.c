@@ -48,10 +48,12 @@ float readMaxTempFromConfigFile(const char *filePath){
 
     fgets(line, BUFSIZ, filePointer);
     temperature = atof(line);
-    printf("Reading max temp from config file '%f'.\n", temperature);
+    printf("Reading max temp from config file '%s'.\n", line);
+    printf("Parsed as '%f'.\n", temperature);
 
     if(temperature <= 0){
         temperature = MAX_TEMP;
+        printf("Using '%f' instead.", temperature);
     }
 
     return temperature;
