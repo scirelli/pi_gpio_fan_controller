@@ -17,19 +17,21 @@
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wiringPi.h>
 
 // LED Pin - wiringPi pin 0 is BCM_GPIO 17.
 
 #define PIN_17 0
+#define INDEX_OF_START_OF_TEMP 6
 
 int main(int argumentCount, char *argumentVector[])
 {
-    char line[BUFSIZ], c;
+    char line[BUFSIZ], c, *tempStart;
     float temperature = 0.f;
-    int indexOfStartOfTemp = 6,
-        index = indexOfStartOfTemp;
+    int index = INDEX_OF_START_OF_TEMP,
+        endIndex = 0;
     size_t length = 0;
 
     printf("Raspberry Pi: Turn on/off pin 17, based on vcgencmd measure_temp, input. \n");
@@ -40,16 +42,31 @@ int main(int argumentCount, char *argumentVector[])
     printf("vcgencmd temp reported as: %s\n", line);
     
     while( (c = line[index++]) != '\0' ){
-        printf("%c", c);
+        if(index >= length){
+            return 1;
+        }else if(c > '9' || c < '0' && c != '.'){
+            line[--index] = '\0';
+            break;
+        }
     }
+    tempStart = line + (INDEX_OF_START_OF_TEMP-1);
+    temperature = atof(tempStart);
 
-    printf("Parsed the temperature as %d\n", temperature);
-    //wiringPiSetup();
-    //pinMode(PIN_17, OUTPUT);
+    printf("Parsed the temperature as '%s', %1f\n", tempStart, temperature);
+
+    if( temperature <= 0 ){
+        printf("Nothing to do.");
+        return 0;
+    }
     
+    wiringPiSetup();
+    pinMode(PIN_17, OUTPUT);
 
-    //digitalWrite (PIN_17, HIGH);// On
-    //digitalWrite (PIN_17, LOW); // Off
+    if( temperature > 29.f ){
+        digitalWrite (PIN_17, HIGH);// On
+    }else{
+        digitalWrite (PIN_17, LOW); // Off
+    }
 
     return 0;
 }

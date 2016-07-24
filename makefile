@@ -3,5 +3,5 @@ pi_fan:
 
 all: pi_fan
 
-run:
+run: pi_fan
 	/opt/vc/bin/vcgencmd measure_temp | ./pi_fan
