@@ -59,17 +59,13 @@ float readMaxTempFromConfigFile(const char *filePath){
     return temperature;
 }
 
-int main(int argumentCount, char *argumentVector[])
-{
+float parseTempfromSTDIn(){
     char line[BUFSIZ], c, *tempStart;
-    float currentTemperature = 0.f,
-          maxTemperature = 0.f;
+    float currentTemperature = 0.f;
     int index = INDEX_OF_START_OF_TEMP,
         endIndex = 0;
     size_t length = 0;
 
-    printf("---------------------------------------------------------\nTurn on/off pin 17, based on vcgencmd measure_temp, input.\n---------------------------------------------------------\n\n");
-    
     fgets(line, BUFSIZ, stdin);
     length = strlen(line);
 
@@ -78,7 +74,7 @@ int main(int argumentCount, char *argumentVector[])
     while( (c = line[index++]) != '\0' ){
         if(index >= length){
             printf("Could not parse vcgencmd output. 1");
-            return EXIT_FAILURE;
+            exit(EXIT_FAILURE);
         }else if(c > '9' || c < '0' && c != '.'){
             line[--index] = '\0';
             break;
@@ -87,7 +83,7 @@ int main(int argumentCount, char *argumentVector[])
 
     if( INDEX_OF_START_OF_TEMP >= length ){
         printf("Could not parse vcgencmd output. 2");
-        return EXIT_FAILURE;
+        exit(EXIT_FAILURE);
     }
 
     tempStart = line + (INDEX_OF_START_OF_TEMP);
@@ -97,18 +93,40 @@ int main(int argumentCount, char *argumentVector[])
 
     if( currentTemperature <= 0 ){
         printf("Nothing to do.");
-        return EXIT_SUCCESS;
+        exit(EXIT_SUCCESS);
     }
-    
+
+    return currentTemperature;
+}
+
+float getMaxTemperatureFromConfigFileOrDefault(int argumentCount, char *argumentVector[]){
+    float maxTemperature = 0.f;
+
     if(argumentCount > 1){
         maxTemperature = readMaxTempFromConfigFile(argumentVector[1]);
     }else{
         maxTemperature = readMaxTempFromConfigFile(NULL);
     }
 
+    return maxTemperature;
+}
+
+void initWirePi() {
     wiringPiSetup();
     pinMode(PIN_17, OUTPUT);
+}
+
+int main(int argumentCount, char *argumentVector[])
+{
+    float currentTemperature = 0.f,
+          maxTemperature = 0.f;
+
+    printf("---------------------------------------------------------\nTurn on/off pin 17, based on 'vcgencmd measure_temp', input.\n---------------------------------------------------------\n\n");
     
+    currentTemperature = parseTempfromSTDIn();
+    maxTemperature = getMaxTemperatureFromConfigFileOrDefault(argumentCount, argumentVector);
+    initWirePi();
+
     if(currentTemperature > maxTemperature ){
         printf("Turning pin on.\n");
         digitalWrite (PIN_17, HIGH);// On
@@ -116,6 +134,7 @@ int main(int argumentCount, char *argumentVector[])
         printf("Turning pin off.\n");
         digitalWrite (PIN_17, LOW); // Off
     }
+
     printf("=========================================================\n");
 
     return EXIT_SUCCESS;
