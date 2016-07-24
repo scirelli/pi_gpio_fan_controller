@@ -6,7 +6,11 @@
  *
  *	This program reads the stdout of 'vcgencmd measure_temp' from stdin and turns on pin 17
  *	if the temp is >= 30C
- *
+ * 
+ * To configure the temperature at which the pin is turned on or off create a config file with a single number.
+ * That number will be read in as the max temperature. By default the program will look for a file called config.conf
+ * in the working directory. Or you can pass the file path as the first paramater.
+ * 
  * Note:
  * 	Do not run a fan from this pin, use a relay or mosfet from a power supply that can run
  *      the fan you want.
@@ -24,16 +28,21 @@
 // LED Pin - wiringPi pin 0 is BCM_GPIO 17.
 
 #define PIN_17 0
-#define INDEX_OF_START_OF_TEMP 6
+#define INDEX_OF_START_OF_TEMP 5
 #define MAX_TEMP 29.f
 
-float readMaxTempFromConfigFile(){
+float readMaxTempFromConfigFile(const char *filePath){
     FILE *filePointer;
     char line[BUFSIZ];
     float temperature = 0;
+    
+    if(filePath == NULL) {
+        filePath = "./config.conf";
+    }
 
-    filePointer = fopen("./config.conf", "r");
+    filePointer = fopen(filePath, "r");
     if( filePointer == NULL ){
+        printf("Could not find config file.");
         return 0;
     }
 
@@ -66,13 +75,20 @@ int main(int argumentCount, char *argumentVector[])
     
     while( (c = line[index++]) != '\0' ){
         if(index >= length){
-            return 1;
+            printf("Could not parse vcgencmd output. 1");
+            return EXIT_FAILURE;
         }else if(c > '9' || c < '0' && c != '.'){
             line[--index] = '\0';
             break;
         }
     }
-    tempStart = line + (INDEX_OF_START_OF_TEMP-1);
+
+    if( INDEX_OF_START_OF_TEMP >= length ){
+        printf("Could not parse vcgencmd output. 2");
+        return EXIT_FAILURE;
+    }
+
+    tempStart = line + (INDEX_OF_START_OF_TEMP);
     currentTemperature = atof(tempStart);
 
     printf("Parsed the temperature as '%s', %1f\n", tempStart, currentTemperature);
@@ -81,8 +97,12 @@ int main(int argumentCount, char *argumentVector[])
         printf("Nothing to do.");
         return EXIT_SUCCESS;
     }
-
-    maxTemperature = readMaxTempFromConfigFile();
+    
+    if(argumentCount > 1){
+        maxTemperature = readMaxTempFromConfigFile(argumentVector[1]);
+    }else{
+        maxTemperature = readMaxTempFromConfigFile(NULL);
+    }
 
     wiringPiSetup();
     pinMode(PIN_17, OUTPUT);
