@@ -25,16 +25,39 @@
 
 #define PIN_17 0
 #define INDEX_OF_START_OF_TEMP 6
+#define MAX_TEMP 29.f
+
+float readMaxTempFromConfigFile(){
+    FILE *filePointer;
+    char line[BUFSIZ];
+    float temperature = 0;
+
+    filePointer = fopen("./config.conf", "r");
+    if( filePointer == NULL ){
+        return 0;
+    }
+
+    fgets(line, BUFSIZ, filePointer);
+    temperature = atof(line);
+    printf("Reading max temp from config file '%f'.\n", temperature);
+
+    if(temperature <= 0){
+        temperature = MAX_TEMP;
+    }
+
+    return temperature;
+}
 
 int main(int argumentCount, char *argumentVector[])
 {
     char line[BUFSIZ], c, *tempStart;
-    float temperature = 0.f;
+    float currentTemperature = 0.f,
+          maxTemperature = 0.f;
     int index = INDEX_OF_START_OF_TEMP,
         endIndex = 0;
     size_t length = 0;
 
-    printf("Raspberry Pi: Turn on/off pin 17, based on vcgencmd measure_temp, input. \n");
+    printf("---------------------------------------------------------\nTurn on/off pin 17, based on vcgencmd measure_temp, input.\n---------------------------------------------------------\n\n");
     
     fgets(line, BUFSIZ, stdin);
     length = strlen(line);
@@ -50,23 +73,28 @@ int main(int argumentCount, char *argumentVector[])
         }
     }
     tempStart = line + (INDEX_OF_START_OF_TEMP-1);
-    temperature = atof(tempStart);
+    currentTemperature = atof(tempStart);
 
-    printf("Parsed the temperature as '%s', %1f\n", tempStart, temperature);
+    printf("Parsed the temperature as '%s', %1f\n", tempStart, currentTemperature);
 
-    if( temperature <= 0 ){
+    if( currentTemperature <= 0 ){
         printf("Nothing to do.");
-        return 0;
+        return EXIT_SUCCESS;
     }
-    
+
+    maxTemperature = readMaxTempFromConfigFile();
+
     wiringPiSetup();
     pinMode(PIN_17, OUTPUT);
-
-    if( temperature > 29.f ){
+    
+    if(currentTemperature > maxTemperature ){
+        printf("Turning pin on.\n");
         digitalWrite (PIN_17, HIGH);// On
     }else{
+        printf("Turning pin off.\n");
         digitalWrite (PIN_17, LOW); // Off
     }
+    printf("=========================================================\n");
 
-    return 0;
+    return EXIT_SUCCESS;
 }

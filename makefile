@@ -4,4 +4,4 @@ pi_fan:
 all: pi_fan
 
 run: pi_fan
-	/opt/vc/bin/vcgencmd measure_temp | ./pi_fan
+	/opt/vc/bin/vcgencmd measure_temp | sudo ./pi_fan
