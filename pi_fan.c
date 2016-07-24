@@ -66,24 +66,25 @@ float parseTempfromSTDIn(){
         endIndex = 0;
     size_t length = 0;
 
+    printf("Reading stdIn...\n\n", line);
     fgets(line, BUFSIZ, stdin);
     length = strlen(line);
 
     printf("vcgencmd temp reported as: %s\n", line);
     
+    if( INDEX_OF_START_OF_TEMP >= length ){
+        printf("Could not parse vcgencmd output. Error #1\n");
+        exit(EXIT_FAILURE);
+    }
+
     while( (c = line[index++]) != '\0' ){
         if(index >= length){
-            printf("Could not parse vcgencmd output. 1");
+            printf("Could not parse vcgencmd output. Error #2\n");
             exit(EXIT_FAILURE);
         }else if(c > '9' || c < '0' && c != '.'){
             line[--index] = '\0';
             break;
         }
-    }
-
-    if( INDEX_OF_START_OF_TEMP >= length ){
-        printf("Could not parse vcgencmd output. 2");
-        exit(EXIT_FAILURE);
     }
 
     tempStart = line + (INDEX_OF_START_OF_TEMP);
@@ -92,7 +93,7 @@ float parseTempfromSTDIn(){
     printf("Parsed the temperature as '%s', %1f\n", tempStart, currentTemperature);
 
     if( currentTemperature <= 0 ){
-        printf("Nothing to do.");
+        printf("Nothing to do.\n");
         exit(EXIT_SUCCESS);
     }
 
